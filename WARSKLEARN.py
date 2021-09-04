@@ -6,6 +6,7 @@ import time
 from mlxtend.regressor import StackingCVRegressor
 from pygam import GAM, LinearGAM, s, f, te
 from xgboost import XGBRegressor
+from mlens.ensemble import SuperLearner
 from sklearn.model_selection import train_test_split
 from sklearn import linear_model
 from sklearn import svm
@@ -18,7 +19,8 @@ from sklearn import metrics
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
-#from tpot.builtins import StackingEstimator, ZeroCount
+from tpot.builtins import StackingEstimator, ZeroCount
+from copy import copy
 from warfit_learn import metrics
 from warfit_learn.metrics import score_pw20, score_r2, score_mae
 from warfit_learn.metrics import confidence_interval
@@ -147,11 +149,7 @@ def main():
     n_features = 1  # number of features used in the model
     lams = np.logspace(-5, 5, 20) * n_features
     splines = 12  # number of splines we will use
-
-
     modelsk_GAM  = LinearGAM(s(0,n_splines=splines))
-
-
     modelsk_LR  = linear_model.LinearRegression(fit_intercept=True,normalize=True)
     modelsk_LAR = linear_model.Lasso(alpha = 0.1, fit_intercept= True)
     modelsk_RR  = linear_model.Ridge(alpha = 0.1, fit_intercept=True)
@@ -161,7 +159,9 @@ def main():
     modelsk_SVR = make_pipeline(StandardScaler(), svm.SVR(C=1.0, epsilon=0.2))
     modelsk_RF = RandomForestRegressor(n_estimators=100, random_state=1)
     modelsk_NN = MLPRegressor(hidden_layer_sizes=(100, ),activation='logistic',solver='lbfgs')
-
+    modelsk_SuperEnsemble = SuperLearner()
+    modelsk_SuperEnsemble.add([SVR(),modelsk_RF,modelsk_GAM, modelsk_LAR])
+    ensemble.add_meta(SVR())
     for file in filesImp:
         dfnew = pd.read_csv(root + '\\' + file, ";")
         df = filesImp.index(file)+1
@@ -195,7 +195,6 @@ def main():
         y = dfmod['Dose_mg_week']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=0)
 
-
         modelsk_LR.fit(X_train, y_train)
         modelsk_LAR.fit(X_train, y_train)
         modelsk_RR.fit(X_train, y_train)
@@ -207,6 +206,7 @@ def main():
         modelsk_NN.fit(X_train, y_train)
         modelsk_GAM.fit(X_train, y_train)
         modelsk_GAM.gridsearch(X_train.values, y_train.values, lam=lams)
+        modelsk_SuperEnsemble.fit(X_train, y_train)
         y_test = y_test.tolist()
 
         y_predicted_Linear = modelsk_LR.predict(X_test)
@@ -243,10 +243,10 @@ def main():
         y_pred_GBT = y_predicted_GBT.tolist()
         y_predicted_RF = modelsk_RF.predict(X_test)
         y_pred_RF = y_predicted_RF.tolist()
-        #coefficients = modelsk_GBT
-        #print("GBT coefficients ", coefficients)
-        # Initializing Level One Regressorsxgbr = XGBRegressor()
-        #
+        y_predicted_Super = modelsk_SuperEnsemble.predict(X_test)
+        y_pred_Super = y_predicted_Super.tolist()
+
+
         xgbr = XGBRegressor()
         rf = RandomForestRegressor(n_estimators=100, random_state=1)
         SV = SVR(kernel='linear', cache_size=1000)
@@ -289,6 +289,7 @@ def main():
         MLearning.append({'model': 'Stack3', 'y-true': y_test, 'y-pred': y_pred_stack3})
         MLearning.append({'model': 'Stack4', 'y-true': y_test, 'y-pred': y_pred_stack4})
         MLearning.append({'model': 'Stack5', 'y-true': y_test, 'y-pred': y_pred_stack5})
+        Mlearning.append({'model': 'Super','y-true':y_test, 'y-pred':y_pred_Super})
 
         for m in range(len(MLearning)):
             skmodel = MLearning[m]['model']
@@ -319,7 +320,7 @@ def main():
             models.append({'model': 'Stack3', 'MAE': 0, 'PW20': 0, 'R2': 0, 'MLAR': 0, 'MALAR': 0})
             models.append({'model': 'Stack4', 'MAE': 0, 'PW20': 0, 'R2': 0, 'MLAR': 0, 'MALAR': 0})
             models.append({'model': 'Stack5', 'MAE': 0, 'PW20': 0, 'R2': 0, 'MLAR': 0, 'MALAR': 0})
-
+            models.append({'model': 'Super', 'MAE': 0, 'PW20': 0, 'R2': 0, 'MLAR': 0, 'MALAR': 0})
 
         for k in range(len(impResults)):
             a = impResults[k]['model']
