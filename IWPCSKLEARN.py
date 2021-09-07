@@ -508,8 +508,8 @@ def main():
                 print(fieldname, 'MAE:', round(mae_value, 6), file=fileoutput)
                 print(fieldname, 'PW20:', round(pw20_value, 6), file=fileoutput)
                 print(fieldname, 'R2:', round(R2_value, 6), file=fileoutput)
-                print(fieldname, 'MALAR:', round(MALAR_value, 6), file=fileoutput)
-                print(fieldname, 'MLAR:', round(MLAR_value, 6), file=fileoutput)
+                print(fieldname, 'MAPE/MALAR:', round(MALAR_value, 6), file=fileoutput)
+                print(fieldname, 'Bias/MLAR:', round(MLAR_value, 6), file=fileoutput)
 
 
 
