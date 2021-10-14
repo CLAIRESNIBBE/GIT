@@ -162,15 +162,6 @@ def get_models():
     return models
 
 
-# create the super learner
-def get_super_learner(X):
-    ensemble = SuperLearner(scorer=rmse, folds=10, shuffle=True, sample_size=len(X))
-    # add base models
-    models = get_models()
-    ensemble.add(models)
-    # add the meta model
-    ensemble.add_meta(LinearRegression())
-    return ensemble
 
 
 def rmse(yreal, yhat):
